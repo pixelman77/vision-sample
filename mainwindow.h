@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QFile>
+#include <editorcore.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,11 +23,31 @@ private:
     void makeMenuActions();
     void makeMenuBar();
 
+    QImage mainImage;
+    QImage tempImage;
+    QString fileName;
+    void display(QImage image);
+
     void open();
+    void showHistogram();
+
+
+    enum equalizeHistogramType {Manual, CV};
+    equalizeHistogramType showEqualizeMethodSelectionDialog(QWidget* parent);
+    void equalizeHistogram();
+
+    EditorCore editor;
 
     QMenuBar *menuBar;
     QMenu *menu;
+
+    //file
     QAction *openAction;
+    QAction *saveAction;
+
+    //Manipulate
+    QAction *showHistogramAction;
+    QAction *histogramEqualizationAction;
 
     QFile *imageFile;
 
