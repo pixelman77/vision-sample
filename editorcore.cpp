@@ -319,3 +319,52 @@ QImage EditorCore::equalizeHistogramManual(QImage image){
     return equalized;
 }
 
+QImage EditorCore::correctGammaManual(QImage image, float gamma){
+    cv::Mat mat = QImageToMat(image);
+
+    if (mat.empty()) {
+            return MatToQImage(cv::Mat());
+        }
+
+        // Create lookup table for gamma correction
+        cv::Mat lookupTable(1, 256, CV_8U);
+        uchar* p = lookupTable.ptr();
+        for (int i = 0; i < 256; ++i) {
+            p[i] = cv::saturate_cast<uchar>(pow(i / 255.0, gamma) * 255.0);
+        }
+
+        cv::Mat result;
+
+        // Handle different channel cases
+        if (mat.channels() == 1) {
+            // Grayscale image
+            cv::LUT(mat, lookupTable, result);
+        } else if (mat.channels() == 3) {
+            // Color image (BGR)
+            std::vector<cv::Mat> channels;
+            cv::split(mat, channels);
+
+            for (auto& channel : channels) {
+                cv::LUT(channel, lookupTable, channel);
+            }
+
+            cv::merge(channels, result);
+        } else if (mat.channels() == 4) {
+            // Color image with alpha (BGRA)
+            std::vector<cv::Mat> channels;
+            cv::split(mat, channels);
+
+            // Apply gamma only to color channels (skip alpha)
+            for (int i = 0; i < 3; ++i) {
+                cv::LUT(channels[i], lookupTable, channels[i]);
+            }
+
+            cv::merge(channels, result);
+        } else {
+            // Unsupported format, return original
+            return MatToQImage(mat.clone());
+        }
+
+     return MatToQImage(result);
+
+}

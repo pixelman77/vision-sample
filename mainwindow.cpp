@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QDialog>
 #include <QVBoxLayout>
+#include <QDoubleSpinBox>
 #include <QComboBox>
 #include <QPushButton>
 
@@ -112,7 +113,7 @@ void MainWindow::showHistogram(){
 }
 
 
-MainWindow::equalizeHistogramType MainWindow::showEqualizeMethodSelectionDialog(QWidget* parent = nullptr) {
+MainWindow::processType MainWindow::showEqualizeMethodSelectionDialog(QWidget* parent = nullptr) {
     // Create the dialog
     QDialog dialog(parent);
     dialog.setWindowTitle("Select Method");
@@ -122,8 +123,8 @@ MainWindow::equalizeHistogramType MainWindow::showEqualizeMethodSelectionDialog(
 
     // Create combo box
     QComboBox comboBox(&dialog);
-    comboBox.addItem("Manual", Manual);
-    comboBox.addItem("CV", CV);
+    comboBox.addItem("Manual", MainWindow::processType::Manual);
+    comboBox.addItem("CV", MainWindow::processType::CV);
 
     // Add OK button
     QPushButton okButton("OK", &dialog);
@@ -133,12 +134,12 @@ MainWindow::equalizeHistogramType MainWindow::showEqualizeMethodSelectionDialog(
     layout.addWidget(&okButton);
 
     // Variable to store selection
-    equalizeHistogramType selectedMethod = Manual;
+    processType selectedMethod = MainWindow::processType::Manual;
 
     // Connect signals
     QObject::connect(&comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
         [&selectedMethod, &comboBox](int index) {
-            selectedMethod = static_cast<equalizeHistogramType>(comboBox.itemData(index).toInt());
+            selectedMethod = static_cast<processType>(comboBox.itemData(index).toInt());
         });
 
     QObject::connect(&okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
@@ -148,19 +149,93 @@ MainWindow::equalizeHistogramType MainWindow::showEqualizeMethodSelectionDialog(
         return selectedMethod;
     }
 
-    return Manual; // Default if dialog was canceled
+    return cancel; // Default if dialog was canceled
 }
 
 void MainWindow::equalizeHistogram(){
-    MainWindow::equalizeHistogramType type = showEqualizeMethodSelectionDialog(this);
+    MainWindow::processType type = showEqualizeMethodSelectionDialog(this);
+    if(type == MainWindow::processType::cancel){
+        return;
+    }
     QImage neo;
-    if(type == MainWindow::equalizeHistogramType::CV){
+    if(type == MainWindow::processType::CV){
         neo = editor.equalizeHistogramCV(tempImage);
     }
     else{
         neo = editor.equalizeHistogramManual(tempImage);
     }
     display(neo);
+}
+
+
+MainWindow::gammaCommandInfo MainWindow::showGammaCorrectionMethodSelectionDialog(QWidget* parent = nullptr) {
+    MainWindow::gammaCommandInfo command;
+    command.procType = MainWindow::processType::cancel;
+    command.gamma = 1.0;
+    QDialog dialog(parent);
+    dialog.setWindowTitle("Method Selection");
+
+    QVBoxLayout mainLayout(&dialog);
+
+    // Method selection combo box
+    QHBoxLayout methodLayout;
+    QLabel methodLabel("Method:");
+    QComboBox methodCombo;
+    methodCombo.addItem("Manual", Manual);
+    //methodCombo.addItem("CV", CV);
+    methodLayout.addWidget(&methodLabel);
+    methodLayout.addWidget(&methodCombo);
+
+
+    QHBoxLayout gammaLayout;
+    QLabel gammaLabel("gamma:");
+    QDoubleSpinBox gammaSpinBox;
+    gammaSpinBox.setRange(0.1, 10.0);
+    gammaSpinBox.setValue(1.0);
+    gammaSpinBox.setSingleStep(0.1);
+    gammaSpinBox.setDecimals(1);
+
+
+
+    gammaLayout.addWidget(&gammaLabel);
+
+    gammaLayout.addWidget(&gammaSpinBox);
+
+
+    // OK button
+    QPushButton okButton("OK");
+
+    // Arrange all widgets
+    mainLayout.addLayout(&methodLayout);
+    mainLayout.addLayout(&gammaLayout);
+    mainLayout.addWidget(&okButton);
+
+    // Connect signals
+    QObject::connect(&okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        command.procType = static_cast<MainWindow::processType>(methodCombo.currentData().toInt());
+        command.gamma = static_cast<float>(gammaSpinBox.value());
+    }
+
+    return command;
+
+}
+
+void MainWindow::gammaCorrection(){
+    MainWindow::gammaCommandInfo command = showGammaCorrectionMethodSelectionDialog(this);
+    if(command.procType == MainWindow::processType::cancel){
+        return;
+    }
+    QImage neo;
+    if(command.procType == MainWindow::processType::CV){
+        //neo = editor.correctGammaCV(tempImage, command.gamma);
+    }
+    else{
+        neo = editor.correctGammaManual(tempImage, command.gamma);
+    }
+    display(neo);
+
 }
 
 //add theme later
@@ -173,6 +248,9 @@ void MainWindow::makeMenuActions(){
 
     histogramEqualizationAction = new QAction("Equalize Histogram", this);
     connect(histogramEqualizationAction, &QAction::triggered, this, &MainWindow::equalizeHistogram);
+
+    gammaCorrectionAction = new QAction("Gamma Correction", this);
+    connect(gammaCorrectionAction, &QAction::triggered, this, &MainWindow::gammaCorrection);
 }
 
 void MainWindow::makeMenuBar(){
@@ -184,6 +262,7 @@ void MainWindow::makeMenuBar(){
     menu = menuBar->addMenu("Image");
     menu->addAction(showHistogramAction);
     menu->addAction(histogramEqualizationAction);
+    menu->addAction(gammaCorrectionAction);
 
     this->setMenuBar(menuBar);
 }

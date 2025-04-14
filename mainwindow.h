@@ -32,9 +32,20 @@ private:
     void showHistogram();
 
 
-    enum equalizeHistogramType {Manual, CV};
-    equalizeHistogramType showEqualizeMethodSelectionDialog(QWidget* parent);
+    enum processType {Manual, CV, cancel};
+    processType showEqualizeMethodSelectionDialog(QWidget* parent);
     void equalizeHistogram();
+
+
+    struct gammaCommandInfo{
+        processType procType;
+        float gamma;
+    };
+    gammaCommandInfo showGammaCorrectionMethodSelectionDialog(QWidget* parent);
+    void gammaCorrection();
+
+    processType showThresholdMethodSelectionDialog(QWidget* parent);
+    void thresholdOperation();
 
     EditorCore editor;
 
@@ -48,6 +59,9 @@ private:
     //Manipulate
     QAction *showHistogramAction;
     QAction *histogramEqualizationAction;
+    QAction *gammaCorrectionAction;
+    QAction *thresholdAction;
+
 
     QFile *imageFile;
 

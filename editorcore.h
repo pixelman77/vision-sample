@@ -23,6 +23,10 @@ public:
     QImage equalizeHistogramManual(QImage image);
     QImage equalizeHistogramCV(QImage image);
 
+    QImage correctGammaCV(QImage image, float gamma);
+    //useless
+    QImage correctGammaManual(QImage image, float gamma);
+
     bool ready = false;
 
     QString path;
